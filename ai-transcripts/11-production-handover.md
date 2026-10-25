@@ -80,3 +80,18 @@ npm run typecheck && npm test
 ```
 
 ![Production Handover Note and Test Verification](./11-production-handover-ss-1.png)
+
+### 2.2 End-to-End Browser Verification Evidence
+
+#### A. Active Hold Countdown & Cross-User Hold Conflict
+Logged in as Alice holding Seat A4 with real-time `08:19` countdown timer active, while Bob (in Incognito) simultaneously sees Seat A4 disabled with amber "Held by Others (10m)" status and lock indicator:
+![Dual Browser View - Alice Hold Timer vs Bob Conflict](./11-manual-verification-holds-dual-view.png)
+
+#### B. My Bookings Cancellation Badges & Revenue Protection
+Verified cancelled bookings display rose `✕ CANCELLED` badges with hidden cancel actions, past events marked as ended, and "Total Spent" accurately tallying only confirmed bookings:
+![My Bookings Status Badges and Metrics](./11-manual-verification-bookings-badges.png)
+
+#### C. Graceful 404 Error Boundary
+Navigating to nonexistent event IDs (e.g. `/events/435345`) gracefully renders the custom "Event Not Found" error page with a one-click return to the event catalog:
+![404 Event Not Found Page](./11-manual-verification-404-error.png)
+
