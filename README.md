@@ -13,6 +13,18 @@ Seat booking for small venues. Organizers publish an event with a seat grid, att
 
 ---
 
+## Assumptions & Decisions Made
+
+Where the brief left requirements open, the following architectural assumptions and product decisions were made:
+1. **Anti-Hoarding Rule (1 Hold Per User per Event):** To prevent malicious attendees or bots from locking down an entire venue without paying, each attendee is limited to **1 active hold per event**. Holding another seat on the same event automatically releases their previous hold.
+2. **Idempotent Hold Renewal:** Re-clicking or re-requesting a hold on a seat the user already holds does not return an error; it refreshes the 10-minute hold window from `NOW()` and returns `200 OK`.
+3. **Dual Booking Paths (Hold-First or Direct):** Attendees can choose either the 10-minute hold safety flow or book directly with 1 click. Both paths acquire pessimistic row locks and verify active hold ownership.
+4. **Lazy Expiration with Instant Availability:** Expired holds (`expiresAt < NOW()`) are bypassed in database queries so seats immediately become available to other buyers the moment 10 minutes elapse, without depending on an external cron worker.
+5. **Authentication Boundary:** Browsing events and seat map availability is public (`optionalAuth`), but placing a hold requires an authenticated attendee session so hold ownership is cryptographically bound to a user account.
+6. **Audited Cancellations & Organizer Moderation:** Cancellations update booking status to `CANCELLED` rather than deleting rows, preserving accounting history. Organizers have permission to cancel bookings on events they own for customer service or dispute resolution.
+
+---
+
 ## What You Changed and Why
 
 ### 1. Concurrency Control & Double-Booking Prevention (Backend & Database)
@@ -204,4 +216,7 @@ All pair programming conversations, code audit findings, architectural decisions
 - [`ai-transcripts/08-client-api-grid-status.md`](./ai-transcripts/08-client-api-grid-status.md): Dynamic API URL configuration & 4-state seat grid.
 - [`ai-transcripts/09-client-hold-timer.md`](./ai-transcripts/09-client-hold-timer.md): Live countdown timer & confirmation UI.
 - [`ai-transcripts/10-client-badges-404.md`](./ai-transcripts/10-client-badges-404.md): Cancellation badge styling & 404 error boundary.
-- [`ai-transcripts/11-production-handover.md`](./ai-transcripts/11-production-handover.md): Complete handover note documentation.
+- **Manual End-to-End Verification Proofs:**
+  - [`ai-transcripts/11-manual-verification-holds-dual-view.png`](./ai-transcripts/11-manual-verification-holds-dual-view.png): Dual browser view showing Alice's active 10m countdown timer vs. Bob's disabled "Held by Others (10m)" status.
+  - [`ai-transcripts/11-manual-verification-bookings-badges.png`](./ai-transcripts/11-manual-verification-bookings-badges.png): My Bookings dashboard with `✕ CANCELLED` status badges and accurate revenue calculation.
+  - [`ai-transcripts/11-manual-verification-404-error.png`](./ai-transcripts/11-manual-verification-404-error.png): Custom "Event Not Found" error boundary page.
