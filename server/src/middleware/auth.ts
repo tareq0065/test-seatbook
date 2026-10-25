@@ -32,3 +32,20 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     return res.status(401).json({ error: 'Invalid token', message: 'Invalid token' });
   }
 }
+
+export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    const token = header.substring(7).trim();
+    if (token) {
+      try {
+        const payload = jwt.verify(token, JWT_SECRET) as AuthUser;
+        req.user = payload;
+      } catch {
+        // Silently ignore invalid or expired tokens in optional auth
+      }
+    }
+  }
+  next();
+}
+

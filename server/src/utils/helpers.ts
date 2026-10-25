@@ -9,16 +9,22 @@ export function seatLabel(row: number, col: number): string {
 }
 
 export function isSeatBookable(
-  seat: { bookings?: Array<Pick<Booking, 'status'>> | null },
+  seat: {
+    bookings?: Array<Pick<Booking, 'status'>> | null;
+    holds?: Array<{ expiresAt: Date | string }> | null;
+  },
   event: Pick<Event, 'startsAt'> | { startsAt: Date | string }
 ): boolean {
   if (new Date(event.startsAt) < new Date()) {
     return false;
   }
-  if (!seat.bookings || seat.bookings.length === 0) {
-    return true;
+  if (seat.bookings && seat.bookings.some((booking) => booking.status === 'CONFIRMED')) {
+    return false;
   }
-  return !seat.bookings.some((booking) => booking.status === 'CONFIRMED');
+  if (seat.holds && seat.holds.some((hold) => new Date(hold.expiresAt) > new Date())) {
+    return false;
+  }
+  return true;
 }
 
 export function slugify(text: string): string {

@@ -11,6 +11,9 @@ export async function listEvents() {
           bookings: {
             where: { status: 'CONFIRMED' },
           },
+          holds: {
+            where: { expiresAt: { gt: new Date() } },
+          },
         },
       },
     },
@@ -42,7 +45,10 @@ export async function getEventWithSeats(req: Request) {
       organizer: { select: { id: true, name: true } },
       seats: {
         orderBy: [{ row: 'asc' }, { col: 'asc' }],
-        include: { bookings: { where: { status: 'CONFIRMED' } } },
+        include: {
+          bookings: { where: { status: 'CONFIRMED' } },
+          holds: { where: { expiresAt: { gt: new Date() } } },
+        },
       },
     },
   });

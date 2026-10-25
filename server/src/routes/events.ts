@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import prisma from '../db';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { requireAuth, optionalAuth, AuthRequest } from '../middleware/auth';
 import { getEventWithSeats, listEvents } from '../services/eventService';
 import { formatPrice, seatLabel, isSeatBookable } from '../utils/helpers';
+import { handleHoldSeat, handleReleaseSeat } from './holds';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get('/', async (req, res) => {
   res.json(events);
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
   if (!req.params.id || isNaN(id) || id <= 0 || !Number.isInteger(id)) {
     return res.status(400).json({ error: 'Invalid event ID' });
@@ -23,13 +24,43 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Event not found', message: 'Event not found' });
   }
 
-  const seats = event.seats.map((seat) => ({
-    id: seat.id,
-    row: seat.row,
-    col: seat.col,
-    label: seat.label,
-    available: isSeatBookable(seat, event),
-  }));
+  const isPast = new Date(event.startsAt) < new Date();
+  const currentUserId = req.user?.id;
+
+  const seats = event.seats.map((seat) => {
+    const isBooked = seat.bookings && seat.bookings.some((b) => b.status === 'CONFIRMED');
+    const activeHold = seat.holds && seat.holds.find((h) => new Date(h.expiresAt) > new Date());
+
+    let status: 'AVAILABLE' | 'HELD' | 'BOOKED' = 'AVAILABLE';
+    let heldByMe = false;
+    let holdExpiresAt: string | null = null;
+    let remainingSeconds = 0;
+
+    if (isBooked) {
+      status = 'BOOKED';
+    } else if (activeHold) {
+      status = 'HELD';
+      if (currentUserId && activeHold.userId === currentUserId) {
+        heldByMe = true;
+        holdExpiresAt = new Date(activeHold.expiresAt).toISOString();
+        remainingSeconds = Math.max(0, Math.round((new Date(activeHold.expiresAt).getTime() - Date.now()) / 1000));
+      }
+    }
+
+    const available = !isPast && status === 'AVAILABLE';
+
+    return {
+      id: seat.id,
+      row: seat.row,
+      col: seat.col,
+      label: seat.label,
+      status,
+      available,
+      heldByMe,
+      holdExpiresAt,
+      remainingSeconds,
+    };
+  });
 
   res.json({
     id: event.id,
@@ -44,6 +75,10 @@ router.get('/:id', async (req, res) => {
     seats,
   });
 });
+
+router.post('/:id/seats/:seatId/hold', requireAuth, handleHoldSeat);
+router.post('/:id/seats/:seatId/release', requireAuth, handleReleaseSeat);
+
 
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
   if (req.user!.role !== 'ORGANIZER') {
