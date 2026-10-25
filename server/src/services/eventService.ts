@@ -5,7 +5,15 @@ import { formatPrice, isSeatBookable } from '../utils/helpers';
 export async function listEvents() {
   const events = await prisma.event.findMany({
     orderBy: { startsAt: 'asc' },
-    include: { seats: { include: { bookings: true } } },
+    include: {
+      seats: {
+        include: {
+          bookings: {
+            where: { status: 'CONFIRMED' },
+          },
+        },
+      },
+    },
   });
 
   return events.map((event) => {

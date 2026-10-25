@@ -8,11 +8,17 @@ export function seatLabel(row: number, col: number): string {
   return `${String.fromCharCode(65 + row)}${col + 1}`;
 }
 
-export function isSeatBookable(seat: Seat & { bookings: Booking[] }, event: Event): boolean {
+export function isSeatBookable(
+  seat: { bookings?: Array<Pick<Booking, 'status'>> | null },
+  event: Pick<Event, 'startsAt'> | { startsAt: Date | string }
+): boolean {
   if (new Date(event.startsAt) < new Date()) {
     return false;
   }
-  return seat.bookings.length === 0;
+  if (!seat.bookings || seat.bookings.length === 0) {
+    return true;
+  }
+  return !seat.bookings.some((booking) => booking.status === 'CONFIRMED');
 }
 
 export function slugify(text: string): string {

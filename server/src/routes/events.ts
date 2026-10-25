@@ -2,7 +2,7 @@ import { Router } from 'express';
 import prisma from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { getEventWithSeats, listEvents } from '../services/eventService';
-import { formatPrice, seatLabel } from '../utils/helpers';
+import { formatPrice, seatLabel, isSeatBookable } from '../utils/helpers';
 
 const router = Router();
 
@@ -28,7 +28,7 @@ router.get('/:id', async (req, res) => {
     row: seat.row,
     col: seat.col,
     label: seat.label,
-    available: seat.bookings.length === 0,
+    available: isSeatBookable(seat, event),
   }));
 
   res.json({
