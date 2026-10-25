@@ -19,14 +19,15 @@ enum BookingStatus {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
   name         String
   passwordHash String
-  role         Role      @default(ATTENDEE)
+  role         Role       @default(ATTENDEE)
   events       Event[]
   bookings     Booking[]
-  createdAt    DateTime  @default(now())
+  holds        SeatHold[]
+  createdAt    DateTime   @default(now())
 }
 
 model Event {
@@ -45,13 +46,14 @@ model Event {
 }
 
 model Seat {
-  id       Int       @id @default(autoincrement())
+  id       Int        @id @default(autoincrement())
   eventId  Int
-  event    Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event    Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   row      Int
   col      Int
   label    String
   bookings Booking[]
+  holds    SeatHold[]
 
   @@unique([eventId, row, col])
 }
@@ -66,3 +68,17 @@ model Booking {
   createdAt   DateTime      @default(now())
   cancelledAt DateTime?
 }
+
+model SeatHold {
+  id        Int      @id @default(autoincrement())
+  seatId    Int
+  seat      Seat     @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([seatId, expiresAt])
+  @@index([userId])
+}
+
