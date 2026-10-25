@@ -5,7 +5,18 @@ import { formatPrice, isSeatBookable } from '../utils/helpers';
 export async function listEvents() {
   const events = await prisma.event.findMany({
     orderBy: { startsAt: 'asc' },
-    include: { seats: { include: { bookings: true } } },
+    include: {
+      seats: {
+        include: {
+          bookings: {
+            where: { status: 'CONFIRMED' },
+          },
+          holds: {
+            where: { expiresAt: { gt: new Date() } },
+          },
+        },
+      },
+    },
   });
 
   return events.map((event) => {
@@ -24,6 +35,9 @@ export async function listEvents() {
 
 export async function getEventWithSeats(req: Request) {
   const id = parseInt(req.params.id);
+  if (isNaN(id) || id <= 0) {
+    return null;
+  }
 
   return prisma.event.findUnique({
     where: { id },
@@ -31,7 +45,10 @@ export async function getEventWithSeats(req: Request) {
       organizer: { select: { id: true, name: true } },
       seats: {
         orderBy: [{ row: 'asc' }, { col: 'asc' }],
-        include: { bookings: { where: { status: 'CONFIRMED' } } },
+        include: {
+          bookings: { where: { status: 'CONFIRMED' } },
+          holds: { where: { expiresAt: { gt: new Date() } } },
+        },
       },
     },
   });

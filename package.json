@@ -1,0 +1,10 @@
+{
+  "name": "seatbook",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Seatbook event booking application",
+  "scripts": {
+    "test": "npm --prefix server test",
+    "typecheck": "npm --prefix server run typecheck && npm --prefix client run typecheck"
+  }
+}

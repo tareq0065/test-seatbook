@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth';
 import eventRoutes from './routes/events';
 import bookingRoutes from './routes/bookings';
+import holdRoutes from './routes/holds';
 
 const app = express();
 
@@ -16,9 +17,15 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/events', eventRoutes);
 app.use('/bookings', bookingRoutes);
+app.use('/holds', holdRoutes);
+
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`Seatbook API running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Seatbook API running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
