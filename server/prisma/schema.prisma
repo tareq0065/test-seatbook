@@ -1,0 +1,68 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ORGANIZER
+  ATTENDEE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(ATTENDEE)
+  events       Event[]
+  bookings     Booking[]
+  createdAt    DateTime  @default(now())
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  venue       String
+  startsAt    DateTime
+  rows        Int
+  cols        Int
+  priceCents  Int
+  organizerId Int
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  seats       Seat[]
+  createdAt   DateTime @default(now())
+}
+
+model Seat {
+  id       Int       @id @default(autoincrement())
+  eventId  Int
+  event    Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  row      Int
+  col      Int
+  label    String
+  bookings Booking[]
+
+  @@unique([eventId, row, col])
+}
+
+model Booking {
+  id          Int           @id @default(autoincrement())
+  seatId      Int
+  seat        Seat          @relation(fields: [seatId], references: [id])
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  status      BookingStatus @default(CONFIRMED)
+  createdAt   DateTime      @default(now())
+  cancelledAt DateTime?
+}
