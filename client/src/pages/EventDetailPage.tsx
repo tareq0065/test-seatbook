@@ -10,6 +10,7 @@ export default function EventDetailPage() {
   const [selectedSeat, setSelectedSeat] = useState<any>(null);
   const [availableCount, setAvailableCount] = useState(0);
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [activeHold, setActiveHold] = useState<{
     seatId: number;
     label: string;
@@ -26,13 +27,18 @@ export default function EventDetailPage() {
     }
 
     fetch(`${API_URL}/events/${id}`, { headers })
-      .then((res) => {
+      .then(async (res) => {
+        if (res.status === 404 || res.status === 400) {
+          setNotFound(true);
+          return null;
+        }
         if (!res.ok) {
           throw new Error('Failed to load event');
         }
         return res.json();
       })
       .then((data) => {
+        if (!data) return;
         setEvent(data);
 
         const grouped: any[][] = [];
@@ -211,6 +217,24 @@ export default function EventDetailPage() {
       setActionLoading(false);
     }
   };
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <div className="text-7xl mb-4 animate-bounce">🔍</div>
+        <h2 className="text-3xl font-extrabold text-white mb-2">Event Not Found</h2>
+        <p className="text-white/50 max-w-md mb-8">
+          We couldn't find the event you're looking for. It may have ended, been removed, or the link might be broken.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#a855f7] via-[#ec4899] to-[#f97316] font-bold text-white hover:scale-105 transition-all duration-300 shadow-lg shadow-pink-500/30"
+        >
+          Back to Events Catalog 🎟️
+        </button>
+      </div>
+    );
+  }
 
   if (!event) {
     return (

@@ -3,7 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+  let user: any = null;
+  try {
+    user = JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    user = null;
+  }
 
   function logout() {
     localStorage.removeItem('token');
