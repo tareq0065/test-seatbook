@@ -1,8 +1,6 @@
 # AI Transcript: 01 - Repository Audit & Implementation Planning
 
-**Session Date:** October 25, 2026  
-**Project:** Seatbook Take-Home (Senior Full-Stack Engineer)  
-**Client:** Mr. Rahman (Seatbook)
+**Session Date:** October 25, 2026
 
 ---
 

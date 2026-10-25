@@ -24,6 +24,9 @@ export async function listEvents() {
 
 export async function getEventWithSeats(req: Request) {
   const id = parseInt(req.params.id);
+  if (isNaN(id) || id <= 0) {
+    return null;
+  }
 
   return prisma.event.findUnique({
     where: { id },

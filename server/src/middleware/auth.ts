@@ -15,16 +15,20 @@ export interface AuthRequest extends Request {
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
-  if (!header) {
+  if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Not logged in' });
   }
 
-  const token = header.replace('Bearer ', '');
+  const token = header.substring(7).trim();
+  if (!token) {
+    return res.status(401).json({ error: 'Not logged in' });
+  }
+
   try {
     const payload = jwt.verify(token, JWT_SECRET) as AuthUser;
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token', message: 'Invalid token' });
   }
 }
