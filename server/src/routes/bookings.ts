@@ -14,38 +14,81 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Valid seatId is required' });
     }
 
-    const seat = await prisma.seat.findUnique({
-      where: { id: seatIdNum },
-      include: { event: true },
+    const userId = req.user!.id;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Lock the Seat row to serialize concurrent booking and hold operations
+      const seats = await tx.$queryRaw<Array<{ id: number; eventId: number }>>`
+        SELECT id, "eventId" FROM "Seat" WHERE id = ${seatIdNum} FOR UPDATE
+      `;
+
+      if (!seats || seats.length === 0) {
+        return { status: 404, data: { error: 'Seat not found' } };
+      }
+
+      const seat = seats[0];
+
+      // 2. Fetch event to verify it exists and hasn't started yet
+      const event = await tx.event.findUnique({ where: { id: seat.eventId } });
+      if (!event) {
+        return { status: 404, data: { error: 'Event not found' } };
+      }
+
+      if (new Date(event.startsAt) < new Date()) {
+        return {
+          status: 400,
+          data: { error: 'This event has already started', msg: 'This event has already started' },
+        };
+      }
+
+      // 3. Check for existing active CONFIRMED booking
+      const existing = await tx.booking.findFirst({
+        where: { seatId: seat.id, status: 'CONFIRMED' },
+      });
+
+      if (existing) {
+        return { status: 409, data: { error: 'Seat already booked' } };
+      }
+
+      // 4. Check for active unexpired hold by another attendee
+      const activeHold = await tx.seatHold.findFirst({
+        where: {
+          seatId: seat.id,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (activeHold && activeHold.userId !== userId) {
+        return {
+          status: 409,
+          data: { error: 'Seat is currently held by another attendee' },
+        };
+      }
+
+      // 5. Create the confirmed booking
+      const booking = await tx.booking.create({
+        data: {
+          seatId: seat.id,
+          userId,
+          status: 'CONFIRMED',
+        },
+      });
+
+      // 6. Release any holds on this seat (held by this user or expired)
+      await tx.seatHold.deleteMany({
+        where: { seatId: seat.id },
+      });
+
+      return { status: 201, data: booking };
     });
 
-    if (!seat) {
-      return res.status(404).json({ error: 'Seat not found' });
-    }
-
-    if (seat.event.startsAt < new Date()) {
-      return res.status(400).json({ error: 'This event has already started', msg: 'This event has already started' });
-    }
-
-    const existing = await prisma.booking.findFirst({
-      where: { seatId: seat.id, status: 'CONFIRMED' },
-    });
-
-    if (existing) {
+    return res.status(result.status).json(result.data);
+  } catch (err: any) {
+    if (err.code === 'P2002' || err.message?.includes('unique_active_booking_per_seat')) {
       return res.status(409).json({ error: 'Seat already booked' });
     }
-
-    const booking = await prisma.booking.create({
-      data: {
-        seatId: seat.id,
-        userId: req.user!.id,
-        status: 'CONFIRMED',
-      },
-    });
-
-    res.status(201).json(booking);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('Error creating booking:', err);
+    res.status(500).json({ error: err.message || 'Internal server error while creating booking' });
   }
 });
 
