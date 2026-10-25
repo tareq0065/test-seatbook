@@ -6,13 +6,6 @@ Seat booking for small venues. Organizers publish an event with a seat grid, att
 
 # Handover Note
 
-> **Client:** Mr. Rahman (Dhaka Talks & Workshops)  
-> **Engineer:** Tareq Aziz  
-> **Scope:** Production Readiness, Concurrency Hardening & 10-Minute Seat Holds  
-> **Repository:** [https://github.com/devmonks-co/seatbook](https://github.com/devmonks-co/seatbook)
-
----
-
 ## Assumptions & Decisions Made
 
 Where the brief left requirements open, the following architectural assumptions and product decisions were made:
@@ -205,18 +198,5 @@ All passwords are `password123`.
 
 ## AI Session Transcripts
 
-All pair programming conversations, code audit findings, architectural decisions, and testing logs are preserved in `ai-transcripts/`:
-- [`ai-transcripts/01-repository-audit.md`](./ai-transcripts/01-repository-audit.md): Initial audit and implementation roadmap.
-- [`ai-transcripts/02-security-idor-fix.md`](./ai-transcripts/02-security-idor-fix.md): Security audit & IDOR remediation.
-- [`ai-transcripts/03-availability-fix.md`](./ai-transcripts/03-availability-fix.md): Availability calculation bug fix ("AI was wrong").
-- [`ai-transcripts/04-db-seat-holds-model.md`](./ai-transcripts/04-db-seat-holds-model.md): SeatHold model & PostgreSQL partial index migration.
-- [`ai-transcripts/05-holds-endpoints.md`](./ai-transcripts/05-holds-endpoints.md): 10-minute hold and release endpoint implementation.
-- [`ai-transcripts/06-transactional-seat-locks.md`](./ai-transcripts/06-transactional-seat-locks.md): Pessimistic row locking & transactional bookings.
-- [`ai-transcripts/07-concurrency-tests.md`](./ai-transcripts/07-concurrency-tests.md): Concurrency race condition & hold security tests.
-- [`ai-transcripts/08-client-api-grid-status.md`](./ai-transcripts/08-client-api-grid-status.md): Dynamic API URL configuration & 4-state seat grid.
-- [`ai-transcripts/09-client-hold-timer.md`](./ai-transcripts/09-client-hold-timer.md): Live countdown timer & confirmation UI.
-- [`ai-transcripts/10-client-badges-404.md`](./ai-transcripts/10-client-badges-404.md): Cancellation badge styling & 404 error boundary.
-- **Manual End-to-End Verification Proofs:**
-  - [`ai-transcripts/11-manual-verification-holds-dual-view.png`](./ai-transcripts/11-manual-verification-holds-dual-view.png): Dual browser view showing Alice's active 10m countdown timer vs. Bob's disabled "Held by Others (10m)" status.
-  - [`ai-transcripts/11-manual-verification-bookings-badges.png`](./ai-transcripts/11-manual-verification-bookings-badges.png): My Bookings dashboard with `✕ CANCELLED` status badges and accurate revenue calculation.
-  - [`ai-transcripts/11-manual-verification-404-error.png`](./ai-transcripts/11-manual-verification-404-error.png): Custom "Event Not Found" error boundary page.
+All pair programming conversations, architectural discussions, and session exports/screenshots with AI are preserved in the [`ai-transcripts/`](./ai-transcripts/) directory per submission guidelines.
+
