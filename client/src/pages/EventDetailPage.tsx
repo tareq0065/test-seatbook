@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { API_URL } from '../config';
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -11,8 +12,19 @@ export default function EventDetailPage() {
   const [toast, setToast] = useState<{ type: string; message: string } | null>(null);
 
   const fetchEvent = () => {
-    fetch(`http://localhost:4000/events/${id}`)
-      .then((res) => res.json())
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fetch(`${API_URL}/events/${id}`, { headers })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to load event');
+        }
+        return res.json();
+      })
       .then((data) => {
         setEvent(data);
 
@@ -28,6 +40,9 @@ export default function EventDetailPage() {
           if (seat.available) count++;
         });
         setAvailableCount(count);
+      })
+      .catch((err) => {
+        console.error('Error fetching event:', err);
       });
   };
 
@@ -48,7 +63,7 @@ export default function EventDetailPage() {
       return;
     }
 
-    const res = await fetch('http://localhost:4000/bookings', {
+    const res = await fetch(`${API_URL}/bookings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ seatId: selectedSeat.id }),
@@ -116,25 +131,79 @@ export default function EventDetailPage() {
           <p className="text-white/50 mb-6">
             {availableCount} of {event.seats.length} available · {percentBooked}% booked 🔥
           </p>
+
+          {/* Seat Status Legend */}
+          <div className="flex flex-wrap items-center justify-center gap-6 mb-8 text-xs font-semibold text-white/70 bg-white/5 p-4 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-md bg-gradient-to-br from-[#a855f7] to-[#6366f1]"></div>
+              <span>Available</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-md bg-gradient-to-br from-[#ec4899] to-[#f97316] ring-2 ring-pink-400"></div>
+              <span>Selected / Your Hold</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-md bg-gradient-to-br from-[#f59e0b]/40 to-[#d97706]/50 border border-amber-500/50 flex items-center justify-center text-[10px]">⏳</div>
+              <span>Held by Others (10m)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-md bg-white/10 border border-white/10"></div>
+              <span>Booked</span>
+            </div>
+          </div>
+
           <div className="w-full h-2 rounded-full bg-gradient-to-r from-[#a855f7] to-[#ec4899] mb-10 opacity-60"></div>
           <div className="space-y-3">
             {rows.map((row, i) => (
               <div key={i} className="flex gap-3 justify-center">
-                {row.map((seat: any) => (
-                  <div
-                    key={seat.id}
-                    onClick={() => setSelectedSeat(seat)}
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold cursor-pointer transition-all duration-300 hover:scale-110 ${
-                      selectedSeat?.id === seat.id
-                        ? 'bg-gradient-to-br from-[#ec4899] to-[#f97316] shadow-lg shadow-pink-500/50 scale-110'
-                        : seat.available
-                        ? 'bg-gradient-to-br from-[#a855f7]/60 to-[#6366f1]/60 hover:from-[#a855f7] hover:to-[#6366f1]'
-                        : 'bg-gradient-to-br from-[#a855f7]/20 to-[#6366f1]/20 text-white/30'
-                    }`}
-                  >
-                    {seat.label}
-                  </div>
-                ))}
+                {row.map((seat: any) => {
+                  const isSelected = selectedSeat?.id === seat.id;
+                  const isHeldByMe = seat.heldByMe;
+                  const isHeldByOther = seat.status === 'HELD' && !isHeldByMe;
+                  const isBooked = seat.status === 'BOOKED' || (!seat.available && seat.status !== 'HELD');
+                  const isSelectable = seat.available || isHeldByMe;
+
+                  let seatStyle = 'bg-gradient-to-br from-[#a855f7]/60 to-[#6366f1]/60 hover:from-[#a855f7] hover:to-[#6366f1] text-white hover:scale-110 cursor-pointer shadow-md';
+                  let seatTitle = `Seat ${seat.label} - Available`;
+
+                  if (isSelected || isHeldByMe) {
+                    seatStyle = 'bg-gradient-to-br from-[#ec4899] to-[#f97316] text-white ring-2 ring-pink-400 shadow-lg shadow-pink-500/50 scale-110 cursor-pointer';
+                    seatTitle = isHeldByMe ? `Seat ${seat.label} - Held by you (${seat.remainingSeconds || 600}s remaining)` : `Seat ${seat.label} - Selected`;
+                  } else if (isHeldByOther) {
+                    seatStyle = 'bg-gradient-to-br from-[#f59e0b]/25 to-[#d97706]/35 border border-amber-500/40 text-amber-200/90 cursor-not-allowed opacity-90';
+                    seatTitle = `Seat ${seat.label} - Held by another attendee (10-minute hold)`;
+                  } else if (isBooked) {
+                    seatStyle = 'bg-white/5 border border-white/5 text-white/20 cursor-not-allowed';
+                    seatTitle = `Seat ${seat.label} - Booked`;
+                  }
+
+                  return (
+                    <button
+                      key={seat.id}
+                      type="button"
+                      title={seatTitle}
+                      disabled={!isSelectable && !isSelected}
+                      onClick={() => {
+                        if (isSelectable) {
+                          setSelectedSeat(seat);
+                        }
+                      }}
+                      className={`relative w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold transition-all duration-300 ${seatStyle}`}
+                    >
+                      {seat.label}
+                      {isHeldByOther && (
+                        <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-amber-500 text-black px-1 rounded-full font-extrabold shadow">
+                          ⏳
+                        </span>
+                      )}
+                      {isHeldByMe && (
+                        <span className="absolute -top-1.5 -right-1.5 text-[10px] bg-pink-500 text-white px-1 rounded-full font-extrabold shadow animate-pulse">
+                          ⏳
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>

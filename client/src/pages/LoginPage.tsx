@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import GradientButton from '../components/GradientButton';
+import { API_URL } from '../config';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,7 +13,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    const res = await fetch(`http://localhost:4000/auth/${isLogin ? 'login' : 'register'}`, {
+    const res = await fetch(`${API_URL}/auth/${isLogin ? 'login' : 'register'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(isLogin ? { email, password } : { email, password, name }),
